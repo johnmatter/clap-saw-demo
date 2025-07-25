@@ -12,6 +12,7 @@ private:
   // Per-voice DSP components
   struct VoiceDSP {
     ml::SawGen sawOscillator;
+    ml::Lopass mLoPass;
   };
   std::array<VoiceDSP, 16> voiceDSP;
 
@@ -36,4 +37,3 @@ private:
   // Helper methods go here
   ml::DSPVector processVoice(int voiceIndex, ml::EventsToSignals::Voice& voice);
 };
-

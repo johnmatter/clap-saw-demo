@@ -71,13 +71,12 @@ ml::DSPVector ClapSawDemo::processVoice(int voiceIndex, ml::EventsToSignals::Voi
   const ml::DSPVector vPitchOffset = vPitch - ml::DSPVector(69.0f);
   const ml::DSPVector vPitchRatio = pow(ml::DSPVector(2.0f), vPitchOffset * ml::DSPVector(1.0f/12.0f));
   const ml::DSPVector vFreqHz = ml::DSPVector(440.0f) * vPitchRatio;
-
-  // Follow madronalib examples for oscillator input: frequency_in_Hz / sample_rate
   const ml::DSPVector vFreqNorm = vFreqHz / ml::DSPVector(sr);
   const ml::DSPVector vOscillator = voiceDSP[voiceIndex].sawOscillator(vFreqNorm);
 
-  // Apply gate as amplitude
-  const ml::DSPVector vOutput = vOscillator * vGate;
+  voiceDSP[voiceIndex].mLoPass._coeffs = ml::Lopass::makeCoeffs(12000.0f / sr, 1.414f);
+  const ml::DSPVector vFiltered = voiceDSP[voiceIndex].mLoPass(vOscillator);
+  const ml::DSPVector vOutput = vFiltered * vGate;
 
   return vOutput;
 }
