@@ -23,9 +23,10 @@ option(CSD_INCLUDE_GUI "Include a GUI in ClapSawDemo" TRUE)
 # Copy on mac (could expand to other platforms)
 option(COPY_AFTER_BUILD "Copy the clap to ~/Library on MACOS, ~/.clap on linux" FALSE)
 
+add_subdirectory(libs/readerwriterqueue EXCLUDE_FROM_ALL)
 add_subdirectory(libs/clap EXCLUDE_FROM_ALL)
 add_subdirectory(libs/clap-helpers EXCLUDE_FROM_ALL)
-add_subdirectory(libs/readerwriterqueue EXCLUDE_FROM_ALL)
+add_subdirectory(libs/madronalib EXCLUDE_FROM_ALL)
 if (${CSD_INCLUDE_GUI})
     message(STATUS "Including VSTGUI")
     add_subdirectory(libs/vstgui EXCLUDE_FROM_ALL)
@@ -39,10 +40,111 @@ endif()
 
 add_library(${PROJECT_NAME} MODULE
         src/clap-saw-demo.cpp
-        src/saw-voice.cpp
-        src/clap-saw-demo-pluginentry.cpp
+        src/clap-saw-demo-entry.cpp  # New simple entry file
 )
-target_link_libraries(${PROJECT_NAME} clap-core clap-helpers readerwriterqueue)
+target_link_libraries(${PROJECT_NAME} readerwriterqueue clap clap-helpers madronalib)
+
+# Add include directories  
+target_include_directories(${PROJECT_NAME} PRIVATE
+  libs/clap/include
+  libs/clap-helpers/include
+  libs/madronalib/include
+  libs/madronalib/source/app
+  libs/madronalib/source/DSP
+  libs/madronalib/source/matrix
+  libs/madronalib/external
+  libs/madronalib/external/cJSON
+  libs/madronalib/external/aes256
+  libs/madronalib/external/ffft
+  libs/madronalib/external/oscpack
+  libs/madronalib/external/rtaudio
+  libs/madronalib/external/rtmidi
+  libs/madronalib/external/sse2neon
+  libs/madronalib/external/utf
+)
+
+# Testing infrastructure
+enable_testing()
+
+# Add clap-validator testing target
+option(CSD_ENABLE_TESTING "Enable CLAP validation testing" TRUE)
+
+if (${CSD_ENABLE_TESTING})
+  # Check if Rust/Cargo is available for clap-validator
+  find_program(CARGO_EXECUTABLE cargo)
+  if (CARGO_EXECUTABLE)
+    message(STATUS "Found Cargo at ${CARGO_EXECUTABLE} - enabling CLAP validation tests")
+    
+    # Build clap-validator
+    add_custom_target(build-clap-validator
+      COMMAND ${CARGO_EXECUTABLE} build --release
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/clap-validator
+      COMMENT "Building clap-validator"
+    )
+    
+    # Test target that runs clap-validator on our plugin
+    add_custom_target(test-clap-plugin
+      COMMAND ${CARGO_EXECUTABLE} run --release -- validate $<TARGET_FILE:${PROJECT_NAME}> --only-failed
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/clap-validator
+      DEPENDS ${PROJECT_NAME} build-clap-validator
+      COMMENT "Running CLAP specification validation on ${PROJECT_NAME}"
+    )
+    
+    # Add to CTest
+    add_test(
+      NAME clap-specification-compliance
+      COMMAND ${CARGO_EXECUTABLE} run --release -- validate $<TARGET_FILE:${PROJECT_NAME}> --only-failed
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/clap-validator
+    )
+    
+    # Convenience test script targets
+    if(WIN32)
+      add_custom_target(test-plugin
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test-plugin.bat
+        COMMENT "Running full plugin test suite (Windows)"
+      )
+      add_custom_target(debug-plugin
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/debug-plugin.bat
+        COMMENT "Running comprehensive plugin debugging suite (Windows)"
+      )
+    else()
+      add_custom_target(test-plugin
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test-plugin.sh
+        COMMENT "Running full plugin test suite (Unix)"
+      )
+      add_custom_target(debug-plugin
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/debug-plugin.sh
+        COMMENT "Running comprehensive plugin debugging suite (Unix)"
+      )
+    endif()
+    
+    # CLAP debugging tools integration
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-info/CMakeLists.txt)
+      message(STATUS "Found clap-info - adding debugging targets")
+      add_custom_target(build-clap-info
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-info
+                ${CMAKE_COMMAND} -Bbuild -DCMAKE_BUILD_TYPE=Release
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-info/build --config Release
+        COMMENT "Building clap-info debugging tool"
+      )
+      
+      add_custom_target(inspect-plugin
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-info/build/clap-info $<TARGET_FILE:${PROJECT_NAME}>
+        DEPENDS ${PROJECT_NAME} build-clap-info
+        COMMENT "Inspecting plugin with clap-info"
+      )
+    endif()
+    
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-host/CMakeLists.txt)
+      message(STATUS "Found clap-host - adding host testing targets")
+      # Note: clap-host requires Qt6 and has complex build requirements
+      # Use scripts/debug-plugin.sh for full clap-host integration
+    endif()
+    
+  else()
+    message(WARNING "Cargo not found - CLAP validation tests disabled. Install Rust from https://rustup.rs/")
+  endif()
+endif()
 
 if (${CSD_INCLUDE_GUI})
     target_sources(${PROJECT_NAME} PRIVATE

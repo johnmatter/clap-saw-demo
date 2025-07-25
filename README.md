@@ -1,61 +1,161 @@
-# Clap Saw Demo Synth
+# CLAP Saw Demo with madronalib
 
-The Clap Saw Demo Synth is a synth we put together in the week before the
-CLAP 1.0 Launch to show the developer community a few things we wanted to
-cover in our example base. It serves as an example in the following ways
+A demo CLAP audio plugin showcasing plugin development using madronalib's AudioContext and EventsToSignals architecture.
 
-- It binds a VSTGUI UI to a CLAP plugin without using any frameworks
-- It shows polyphonic parameter modulation and note expression support
-- It sounds pretty good, with a Saw from the algorithm in Surge's Modern oscillator
-  and an SVF filter from cytomic
-- It is released under the MIT license
+- AudioContext handles all voice management, event processing, and timing
+- Complete MIDI/MPE support via EventsToSignals
+- SIMD-optimized DSP: DSPVector processing throughout for maximum performance
+- Essential CLPA extensions (audio-ports, note-ports) fully implemented
+- Cross-platform-ish: macOS, Linux, and Windows support via madronalib, but I've only tested on my M2 mac.
 
-While some folks might actually want to use this as a synth, it really does serve
-as a pedagogical exercise more than anything else.
+## Architecture Overview
 
-## Building the synth
-
-```shell
-git clone https://github.com/surge-synthesizer/clap-saw-demo
-cd clap-saw-demo
-git submodule update --init --recursive
-mkdir ignore
-cmake -Bignore/build -DCMAKE_BUILD_TYPE=Release   # or DEBUG or whatever
-cmake --build ignore/build
+```
+CLAP Host → CLAPWrapper → AudioContext (EventsToSignals) → ClapSawDemo → Audio Output
 ```
 
-and you will get `ignore/build/clap-saw-demo.clap`
+The entire plugin implementation is reduced to a single `processAudioContext()` method, with madronalib handling all complexity.
 
-## Understanding the code
+## Building the Plugin
 
-We tried to make an effort to have the code clean to read with reasonable comments.
-The best starting point is probably clap-saw-demo.h if you want to understand the
-modulation system or clap-saw-demo-editor.h if you want to understand the VSTGUI bindings.
+### Prerequisites
 
-There are still a few small things which aren't done. The issues list in this github repo
-is the book of work to get to a final state.
+- CMake 3.15+
+- C++17 compatible compiler
+- Git with submodule support
 
-## Sending a change, fix, or PR
+### Quick Build
 
-This is an open contribution project! We welcome changes and contributions. If you find a small bug
-or modify the cmake file to work on a new OS or fix a comment please just send in a PR.
+```bash
+git clone https://github.com/your-repo/clap-saw-demo
+cd clap-saw-demo
+git submodule update --init --recursive
+mkdir -p ignore/build
+cmake -Bignore/build -DCMAKE_BUILD_TYPE=Release -DCOPY_AFTER_BUILD=ON -DCSD_INCLUDE_GUI=OFF
+cmake --build ignore/build --target clap-saw-demo -j
+```
 
-If you want to do something more, we also welcome that! Probably best to open a github issue to chat first
-and also, wouldn't you rather work on surge or shortcircuit? Also please keep a few things in mind
+The plugin automatically installs to:
+- **macOS**: `~/Library/Audio/Plug-Ins/CLAP/clap-saw-demo.clap`
+- **Linux**: `~/.clap/clap-saw-demo.clap`
 
-1. This is designed to be a CLAP example, so porting it to AudioUnit or whatever would not be productive. If you
-   love the algo and sound, just lift the voice class into a new synth
-2. This is designed to be a CLAP example, so adding a hundred new features which would make it an awesome synth
-   seems like it would be confusing. Also, if you want hundreds of features, you can download Surge for free from
-   this very github project!
-3. The UI is not very pleasant. I wrote minimal VSTGUI as an example but it could look better. If you want
-   to do this and code it up, go for it!
+**Note**: For the moment, the GUI is disabled (`-DCSD_INCLUDE_GUI=OFF`) to focus on core CLAP + madronalib functionality.
 
-## A note to Linux users
+## Development Scripts
 
-CLAP works great on linux! We have done loads of our primary CLAP development there.
-But VSTGUI on linux is a bit trickier.
+### Testing and Validation
 
-Anyway I think I finally got it working, but I need to write documentation and check it again.
-As of this commit, on Linux it works in BWS43b6 with multiple plugisn in process starting and stopping
-UIs and it doesn't leak timers or FDs. But some work to do on documenting and reviewing it.
+**Quick Plugin Testing**:
+```bash
+scripts/test-plugin.sh
+```
+Runs CLAP specification validation using clap-validator.
+
+**Comprehensive Debugging**:
+```bash
+scripts/debug-plugin.sh
+```
+Full debugging suite including:
+- Dependency verification
+- Tool building (clap-info, clap-host with automatic dependency installation)
+- Plugin inspection
+- CLAP validator testing
+
+**Test Plugin with CLAP Host**:
+```bash
+tools/clap-host/build/host/clap-host ~/Library/Audio/Plug-Ins/CLAP/clap-saw-demo.clap
+```
+Test plugin functionality in a reference CLAP host environment.
+
+### Platform-Specific Testing
+
+**Windows Testing**:
+```bash
+scripts/test-plugin.bat
+```
+
+## Plugin Validation
+
+The plugin passes CLAP specification testing:
+
+```bash
+# Run validator directly
+cd libs/clap-validator
+cargo run --release -- validate ~/Library/Audio/Plug-Ins/CLAP/clap-saw-demo.clap
+```
+
+**Current Status**: 10/21 tests pass, 0 failures, 11 skipped (params/state extensions not yet implemented)
+
+## Project Structure
+
+```
+clap-saw-demo/
+├── src/                          # Plugin implementation (~70 lines total!)
+│   ├── clap-saw-demo.cpp         # Main DSP processing
+│   ├── clap-saw-demo.h           # Plugin interface
+│   └── clap-saw-demo-entry.cpp   # One-line CLAP export
+├── libs/
+│   ├── madronalib/               # Audio DSP framework with EventsToSignals
+│   ├── clap/                     # CLAP specification
+│   ├── clap-helpers/             # CLAP utility library
+│   └── clap-validator/           # CLAP testing tool
+├── scripts/
+│   ├── debug-plugin.sh           # Debugging suite
+│   ├── test-plugin.sh            # Quick CLAP validation
+│   └── test-plugin.bat           # Windows testing
+└── tools/
+    ├── clap-info/                # Plugin inspection tool
+    └── clap-host/                # Reference CLAP host
+```
+
+## Understanding the Code
+
+**Key files**:
+- `src/clap-saw-demo.cpp` - The `processAudioContext()` method has all the interesting DSP stuff
+- `libs/madronalib/include/CLAPExport.h` - Fairly general CLAP wrapper for a madronalib [`ml::SignalProcessor`](https://github.com/madronalabs/madronalib/blob/master/source/app/MLSignalProcessor.h)
+- `src/clap-saw-demo-entry.cpp` - One-liner plugin export macro
+
+The `processAudioContext()` method receives pre-processed voice signals (pitch, gate, mod) from EventsToSignals and only needs to implement DSP.
+
+## CLAP Extensions Status
+
+- ✅ **audio-ports**: Stereo I/O with in-place processing
+- ✅ **note-ports**: MIDI input with CLAP and MIDI dialect support
+- ✅ **Factory interface**: Plugin enumeration and creation
+- ✅ **Core lifecycle**: Complete plugin lifecycle management
+- 🚧 **params**: Parameter automation (in progress)
+- 📋 **state**: Preset management (future enhancement)
+- 📋 **gui**: Plugin interface (future enhancement)
+
+## Development Workflow
+
+1. **Make changes** to plugin code
+2. **Build and auto-install**: `cmake --build ignore/build --target clap-saw-demo`
+3. **Validate**: `scripts/test-plugin.sh`
+4. **Test in DAW**: Load in Bitwig/Reaper/etc.
+5. **Debug if needed**: `scripts/debug-plugin.sh`
+
+## madronalib Integration Benefits
+
+- **Voice management**: Complete polyphonic note handling via EventsToSignals
+- **Event processing**: MIDI/MPE support with sample-accurate timing
+- **Parameter automation**: Smoothing and modulation
+- **Cross-platform**: Identical DSP core for CLAP, AU, AAX, standalones, whatever your heart desires
+- **Performance**: SIMD-optimized DSPVector processing throughout
+
+## Contributing
+
+**Future enhancements welcome**:
+- Parameter extension implementation
+- Enhanced DSP features (unison, filtering)
+- Performance optimization and profiling
+- Cross-platform validation
+
+## License
+
+MIT License - See LICENSE file for details.
+
+## Refs
+
+- [CLAP Specification](https://github.com/free-audio/clap)
+- [madronalib Documentation](https://github.com/madronalabs/madronalib)

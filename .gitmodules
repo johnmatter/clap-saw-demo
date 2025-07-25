@@ -15,3 +15,12 @@
 	path = libs/madronalib
 	url = https://github.com/johnmatter/madronalib.git
 	branch = header-cleanup
+[submodule "libs/clap-validator"]
+	path = libs/clap-validator
+	url = https://github.com/free-audio/clap-validator.git
+[submodule "tools/clap-host"]
+	path = tools/clap-host
+	url = https://github.com/free-audio/clap-host.git
+[submodule "tools/clap-info"]
+	path = tools/clap-info
+	url = https://github.com/free-audio/clap-info.git
