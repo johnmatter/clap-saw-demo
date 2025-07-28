@@ -84,11 +84,24 @@ ml::DSPVector ClapSawDemo::processVoice(int voiceIndex, ml::EventsToSignals::Voi
 void ClapSawDemo::buildParameterDescriptions() {
   ml::ParameterDescriptionList params;
 
-  // Start with basic parameters (will expand in later commits)
   params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
     {"name", "gain"},
     {"range", {0.0f, 1.0f}},
     {"default", 0.5f},
+    {"units", ""}
+  }));
+
+  params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
+    {"name", "f0"},
+    {"range", {10.0f, 10000.0f}},
+    {"default", 1000.0f},
+    {"units", "Hz"}
+  }));
+
+  params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
+    {"name", "Q"},
+    {"range", {0.01f, 10.0f}},
+    {"default", 1.4f},
     {"units", ""}
   }));
 
