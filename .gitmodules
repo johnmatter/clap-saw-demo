@@ -24,3 +24,6 @@
 [submodule "tools/clap-info"]
 	path = tools/clap-info
 	url = https://github.com/free-audio/clap-info.git
+[submodule "libs/mlvg"]
+	path = libs/mlvg
+	url = https://github.com/johnmatter/mlvg
