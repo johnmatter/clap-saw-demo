@@ -33,6 +33,10 @@ public:
   // Voice activity for CLAP sleep/continue
   bool hasActiveVoices() const { return activeVoiceCount > 0; }
 
+  // CLAP parameter interface required by CLAPPluginWrapper
+  uint32_t getParameterCount() const { return _params.descriptions.size(); }
+  const ml::ParameterTree& getParameterTree() const { return _params; }
+
 private:
   // Helper methods go here
   ml::DSPVector processVoice(int voiceIndex, ml::EventsToSignals::Voice& voice);

@@ -76,6 +76,8 @@ ml::DSPVector ClapSawDemo::processVoice(int voiceIndex, ml::EventsToSignals::Voi
 
   voiceDSP[voiceIndex].mLoPass._coeffs = ml::Lopass::makeCoeffs(12000.0f / sr, 1.414f);
   const ml::DSPVector vFiltered = voiceDSP[voiceIndex].mLoPass(vOscillator);
+
+  // TODO: check for ml::ADSR
   const ml::DSPVector vOutput = vFiltered * vGate;
 
   return vOutput;
