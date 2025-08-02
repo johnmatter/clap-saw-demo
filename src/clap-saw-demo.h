@@ -4,6 +4,10 @@
 #include <clap/helpers/plugin.hh>  // CLAP helper framework
 #include <clap/clap.h>             // CLAP core
 
+#ifdef HAS_GUI
+class ClapSawDemoGUI;
+#endif
+
 class ClapSawDemo : public ml::SignalProcessor {
 private:
   // the AudioContext's EventsToSignals handles state
@@ -18,6 +22,8 @@ private:
 
   // Simple voice activity tracking for CLAP
   int activeVoiceCount = 0;
+  
+
 
 public:
   ClapSawDemo();
@@ -33,9 +39,20 @@ public:
   // Voice activity for CLAP sleep/continue
   bool hasActiveVoices() const { return activeVoiceCount > 0; }
 
+
+
   // CLAP parameter interface required by CLAPPluginWrapper
   uint32_t getParameterCount() const { return _params.descriptions.size(); }
   const ml::ParameterTree& getParameterTree() const { return _params; }
+
+#ifdef HAS_GUI
+  // GUI interface methods called by CLAPPluginWrapper
+  void* createGUI(uint32_t width, uint32_t height);
+  void destroyGUI(void* gui);
+  void setGUIParent(void* gui, void* platformWindow);
+  void showGUI(void* gui);
+  void hideGUI(void* gui);
+#endif
 
 private:
   // Helper methods go here

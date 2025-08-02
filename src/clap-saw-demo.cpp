@@ -71,6 +71,8 @@ void ClapSawDemo::processAudioContext() {
     audioContext->outputs[0] = totalOutput * ml::DSPVector(totalGain);  // Mono to stereo
     audioContext->outputs[1] = totalOutput * ml::DSPVector(totalGain);
 
+
+
   } catch (const std::exception& e) {
     // If any exception occurs, output silence to prevent audio issues
     audioContext->outputs[0] = ml::DSPVector{0.0f};
@@ -159,3 +161,45 @@ void ClapSawDemo::buildParameterDescriptions() {
   // Set default parameter values after building
   setDefaultParams();
 }
+
+#ifdef HAS_GUI
+#include "clap-saw-demo-gui.h"
+
+void* ClapSawDemo::createGUI(uint32_t width, uint32_t height) {
+  try {
+    auto* gui = new ClapSawDemoGUI(this);
+    return gui;
+  } catch (const std::exception& e) {
+    std::cerr << "ClapSawDemo::createGUI: " << e.what() << std::endl;
+    return nullptr;
+  }
+}
+
+void ClapSawDemo::destroyGUI(void* gui) {
+  if (gui) {
+    auto* clapGui = static_cast<ClapSawDemoGUI*>(gui);
+    delete clapGui;
+  }
+}
+
+void ClapSawDemo::setGUIParent(void* gui, void* platformWindow) {
+  if (gui) {
+    auto* clapGui = static_cast<ClapSawDemoGUI*>(gui);
+    clapGui->setPlatformWindow(platformWindow);
+  }
+}
+
+void ClapSawDemo::showGUI(void* gui) {
+  if (gui) {
+    auto* clapGui = static_cast<ClapSawDemoGUI*>(gui);
+    clapGui->showGUI();
+  }
+}
+
+void ClapSawDemo::hideGUI(void* gui) {
+  if (gui) {
+    auto* clapGui = static_cast<ClapSawDemoGUI*>(gui);
+    clapGui->hideGUI();
+  }
+}
+#endif

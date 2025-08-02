@@ -26,15 +26,17 @@ option(COPY_AFTER_BUILD "Copy the clap to ~/Library on MACOS, ~/.clap on linux" 
 add_subdirectory(libs/readerwriterqueue EXCLUDE_FROM_ALL)
 add_subdirectory(libs/clap EXCLUDE_FROM_ALL)
 add_subdirectory(libs/clap-helpers EXCLUDE_FROM_ALL)
+set(BUILD_TESTS OFF CACHE BOOL "Disable madronalib tests")
 add_subdirectory(libs/madronalib EXCLUDE_FROM_ALL)
 if (${CSD_INCLUDE_GUI})
-    message(STATUS "Including VSTGUI")
-    add_subdirectory(libs/vstgui EXCLUDE_FROM_ALL)
+    message(STATUS "Including MLVG for GUI")
+    set(BUILD_TESTS OFF CACHE BOOL "Disable MLVG tests")
+    add_subdirectory(libs/mlvg EXCLUDE_FROM_ALL)
 else()
     message(STATUS "GUI Bypassed. headless CSD generated")
 endif()
 if (APPLE AND ${CSD_INCLUDE_GUI})
-  target_compile_options(vstgui PRIVATE -Wno-deprecated-declarations)
+  target_compile_options(mlvg PRIVATE -Wno-deprecated-declarations)
 endif()
 
 
@@ -42,7 +44,22 @@ add_library(${PROJECT_NAME} MODULE
         src/clap-saw-demo.cpp
         src/clap-saw-demo-entry.cpp  # New simple entry file
 )
-target_link_libraries(${PROJECT_NAME} readerwriterqueue clap clap-helpers madronalib)
+
+if(CSD_INCLUDE_GUI)
+  target_sources(${PROJECT_NAME} PRIVATE
+    src/clap-saw-demo-gui.cpp
+  )
+endif()
+target_link_libraries(${PROJECT_NAME} readerwriterqueue clap clap-helpers madronalib mlvg)
+
+# Platform-specific libraries for MLVG
+if(APPLE AND CSD_INCLUDE_GUI)
+  find_library(METAL_FRAMEWORK Metal)
+  find_library(METALKIT_FRAMEWORK MetalKit)
+  if(METAL_FRAMEWORK AND METALKIT_FRAMEWORK)
+    target_link_libraries(${PROJECT_NAME} ${METAL_FRAMEWORK} ${METALKIT_FRAMEWORK})
+  endif()
+endif()
 
 # Add include directories  
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -61,6 +78,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   libs/madronalib/external/rtmidi
   libs/madronalib/external/sse2neon
   libs/madronalib/external/utf
+  libs/mlvg/include
+  libs/mlvg/source
+  libs/mlvg/source/common
+  libs/mlvg/source/widgets
+  libs/mlvg/source/external
+  libs/mlvg/source/external/nanovg/src
+  libs/mlvg/source/external/MetalNanoVG/src
+  libs/mlvg/source/external/nanosvg/src
+  libs/mlvg/source/external/cJSON
 )
 
 # Testing infrastructure
@@ -147,19 +173,11 @@ if (${CSD_ENABLE_TESTING})
 endif()
 
 if (${CSD_INCLUDE_GUI})
-    target_sources(${PROJECT_NAME} PRIVATE
-    src/clap-saw-demo-editor.cpp
-    src/linux-vstgui-adapter.cpp src/linux-vstgui-adapter.h)
-    target_link_libraries(${PROJECT_NAME} vstgui)
+    message(STATUS "Adding MLVG GUI support")
+    target_link_libraries(${PROJECT_NAME} mlvg)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_GUI=1)
 else()
     message(STATUS "Skipping GUI generation")
-endif()
-
-if (${CSD_INCLUDE_GUI})
-    # VSTGUI doesn't include the include paths and compile definitions in the library
-    # targets like other CMake libraries do, so explicitly include them here
-    target_include_directories(${PROJECT_NAME} PUBLIC libs/vstgui)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_GUI=1 ${VSTGUI_COMPILE_DEFINITIONS})
 endif()
 
 if(APPLE)
