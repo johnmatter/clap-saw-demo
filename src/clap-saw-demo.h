@@ -53,6 +53,13 @@ public:
   // CLAP parameter flush interface (for GUI->Host sync)
   void setHostParameterFlushCallback(std::function<void()> callback);
   void requestHostParameterFlush();
+  
+  // Find parameter ID by name for GUI->Host sync
+  int32_t getParameterIdByName(const std::string& name) const;
+  
+  // CLAP parameter change tracking (for GUI->Host sync)
+  void setParameterChangedCallback(std::function<void(int32_t, double)> callback);
+  void notifyParameterChanged(const std::string& name, double realValue);
 
 private:
   // Helper methods go here
@@ -63,4 +70,7 @@ private:
   
   // Parameter flush callback - set by CLAPPluginWrapper
   std::function<void()> hostParameterFlushCallback;
+  
+  // Parameter changed callback - set by CLAPPluginWrapper
+  std::function<void(int32_t, double)> parameterChangedCallback;
 };

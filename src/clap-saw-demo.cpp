@@ -140,21 +140,21 @@ void ClapSawDemo::buildParameterDescriptions() {
   params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
     {"name", "gain"},
     {"range", {0.0f, 1.0f}},
-    {"default", 0.5f},
+    {"plaindefault", 0.5f},
     {"units", ""}
   }));
 
   params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
     {"name", "f0"},
     {"range", {10.0f, 10000.0f}},
-    {"default", 1000.0f},
+    {"plaindefault", 1000.0f},
     {"units", "Hz"}
   }));
 
   params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
     {"name", "Q"},
     {"range", {0.01f, 10.0f}},
-    {"default", 1.4f},
+    {"plaindefault", 1.4f},
     {"units", ""}
   }));
 
@@ -176,7 +176,7 @@ void ClapSawDemo::logToHost(int severity, const char* message) {
   // Always log to console first for debugging
   printf("[CLAP-DEBUG] %s\n", message);
   fflush(stdout);
-  
+
   // Then try host logging
   if (hostLogCallback) {
     hostLogCallback(severity, message);
@@ -185,10 +185,48 @@ void ClapSawDemo::logToHost(int severity, const char* message) {
 
 void ClapSawDemo::setHostParameterFlushCallback(std::function<void()> callback) {
   hostParameterFlushCallback = callback;
+  logToHost(CLAP_LOG_INFO, "Host parameter flush callback set");
 }
 
 void ClapSawDemo::requestHostParameterFlush() {
   if (hostParameterFlushCallback) {
+    logToHost(CLAP_LOG_INFO, "Calling host parameter flush callback");
     hostParameterFlushCallback();
+  } else {
+    logToHost(CLAP_LOG_WARNING, "No host parameter flush callback available");
+  }
+}
+
+// TODO: this could be cleaner. How do CLAP plugins typiically handle it?
+int32_t ClapSawDemo::getParameterIdByName(const std::string& name) const {
+  const auto& descriptions = getParameterTree().descriptions;
+  int32_t currentIndex = 0;
+
+  for (auto it = descriptions.begin(); it != descriptions.end(); ++it) {
+    const auto& paramDesc = *it;
+    if (paramDesc) {
+      std::string paramName = std::string(paramDesc->getTextProperty("name").getText());
+      if (paramName == name) {
+        return currentIndex;
+      }
+    }
+    currentIndex++;
+  }
+
+  return -1; // Not found
+}
+
+void ClapSawDemo::setParameterChangedCallback(std::function<void(int32_t, double)> callback) {
+  parameterChangedCallback = callback;
+  logToHost(CLAP_LOG_INFO, "Parameter changed callback set");
+}
+
+void ClapSawDemo::notifyParameterChanged(const std::string& name, double realValue) {
+  int32_t paramId = getParameterIdByName(name);
+  if (paramId >= 0 && parameterChangedCallback) {
+    std::string logMsg = "Notifying wrapper: param " + name + " (id=" + std::to_string(paramId) +
+                        ") changed to " + std::to_string(realValue);
+    logToHost(CLAP_LOG_INFO, logMsg.c_str());
+    parameterChangedCallback(paramId, realValue);
   }
 }
