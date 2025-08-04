@@ -3,6 +3,7 @@
 #include "madronalib.h"           // madronalib core (AudioContext with EventsToSignals)
 #include <clap/helpers/plugin.hh>  // CLAP helper framework
 #include <clap/clap.h>             // CLAP core
+#include <functional>              // For std::function
 
 #ifdef HAS_GUI
 class ClapSawDemoGUI;
@@ -45,16 +46,14 @@ public:
   uint32_t getParameterCount() const { return _params.descriptions.size(); }
   const ml::ParameterTree& getParameterTree() const { return _params; }
 
-#ifdef HAS_GUI
-  // GUI interface methods called by CLAPPluginWrapper
-  void* createGUI(uint32_t width, uint32_t height);
-  void destroyGUI(void* gui);
-  void setGUIParent(void* gui, void* platformWindow);
-  void showGUI(void* gui);
-  void hideGUI(void* gui);
-#endif
+  // CLAP logging interface
+  void setHostLogCallback(std::function<void(int, const char*)> callback);
+  void logToHost(int severity, const char* message);
 
 private:
   // Helper methods go here
   ml::DSPVector processVoice(int voiceIndex, ml::EventsToSignals::Voice& voice);
+  
+  // Logging callback - set by CLAPPluginWrapper
+  std::function<void(int, const char*)> hostLogCallback;
 };

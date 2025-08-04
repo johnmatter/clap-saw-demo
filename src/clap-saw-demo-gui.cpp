@@ -1,114 +1,200 @@
 #include "clap-saw-demo-gui.h"
-
-#ifdef HAS_GUI
 #include "clap-saw-demo.h"
-#include <iostream>
 
-ClapSawDemoGUI::ClapSawDemoGUI(ClapSawDemo* p) 
-  : ml::AppView("ClapSawDemo", 0), plugin(p) {
-  std::cout << "ClapSawDemoGUI: Constructor called" << std::endl;
+ClapSawDemoGUI::ClapSawDemoGUI(ClapSawDemo* processor) 
+  : ml::AppView("ClapSawDemo", 1), processor(processor) {
+  
+  // Debug: Log construction
+  if (processor) {
+    processor->logToHost(0, ("ClapSawDemoGUI constructor: this=" + 
+                            std::to_string(reinterpret_cast<uintptr_t>(this))).c_str());
+  }
+  
+  // Set up grid system for responsive layout
+  setGridSizeDefault(60);
+  setGridSizeLimits(30, 120);
+  setFixedAspectRatio({10, 6});  // 10x6 grid for our layout
 }
 
-ClapSawDemoGUI::~ClapSawDemoGUI() {
-  std::cout << "ClapSawDemoGUI: Destructor called" << std::endl;
+void ClapSawDemoGUI::makeWidgets() {
+  if (processor) {
+    processor->logToHost(0, "Creating widgets...");
+  }
   
-  // Clean up resources before destroying platform view
-  if (platformView) {
-    clearResources();
-    platformView.reset();
+  // Add cutoff frequency knob - use parameter name "f0"
+  _view->_widgets.add_unique<DialBasic>("f0", ml::WithValues{
+    {"bounds", {2, 2, 2, 2}},
+    {"range", {10.0f, 10000.0f}},  // Match parameter range
+    {"default", 1000.0f},
+    {"log", true},
+    {"visible", true},
+    {"draw_number", false},  // Avoid font issues for tutorial
+    {"param", "f0"}         // CRITICAL: Tell widget which parameter to control
+  });
+
+  // Add resonance knob - use parameter name "Q"
+  _view->_widgets.add_unique<DialBasic>("Q", ml::WithValues{
+    {"bounds", {6, 2, 2, 2}},
+    {"range", {0.01f, 10.0f}},  // Match parameter range
+    {"default", 1.4f},          // Match parameter default
+    {"visible", true},
+    {"draw_number", false},  // Avoid font issues for tutorial
+    {"param", "Q"}          // CRITICAL: Tell widget which parameter to control
+  });
+  
+  if (processor) {
+    processor->logToHost(0, ("Created " + std::to_string(_view->_widgets.size()) + " widgets").c_str());
   }
 }
 
-void ClapSawDemoGUI::initializeResources(NativeDrawContext* nvg) {
-  std::cout << "ClapSawDemoGUI: initializeResources called with nvg: " << nvg << std::endl;
-  // This is where we would load fonts, images, etc.
-  // For now, just log that we were called
-}
-
-void ClapSawDemoGUI::clearResources() {
-  std::cout << "ClapSawDemoGUI: clearResources called" << std::endl;
-  // Clean up any resources allocated in initializeResources
-}
-
-void ClapSawDemoGUI::layoutView(ml::DrawContext dc) {
-  std::cout << "ClapSawDemoGUI: layoutView called" << std::endl;
-  // This is where we would position widgets based on the current view size
-  // For now, just log the call
-}
-
-void ClapSawDemoGUI::onGUIEvent(const GUIEvent& event) {
-  std::cout << "ClapSawDemoGUI: onGUIEvent called" << std::endl;
-  // Handle GUI events like mouse clicks, etc.
-  // For now, just log that we received an event
-}
-
-void ClapSawDemoGUI::onResize(ml::Vec2 newSize) {
-  std::cout << "ClapSawDemoGUI: onResize called: " << newSize.x() << "x" << newSize.y() << std::endl;
-  // Handle view resizing
-}
-
-void ClapSawDemoGUI::setPlatformWindow(void* platformWindow) {
-  this->platformWindow = platformWindow;
-  std::cout << "ClapSawDemoGUI: Platform window set: " << platformWindow << std::endl;
-  
-  if (platformWindow) {
-    // Create PlatformView to connect AppView to the platform window
-    // This is the missing piece for proper MLVG rendering!
-    platformView = std::make_unique<ml::PlatformView>("ClapSawDemo", platformWindow, this, nullptr, 0, 60);
+void ClapSawDemoGUI::connectParameters() {
+  // Connect widgets to processor parameters
+  if (processor) {
+    // Convert Tree to ParameterDescriptionList for _setupWidgets
+    ml::ParameterDescriptionList pdl;
+    for (const auto& paramDesc : processor->getParameterTree().descriptions) {
+      pdl.push_back(std::make_unique<ml::ParameterDescription>(*paramDesc));
+      
+      // Debug: Log parameter setup
+      std::string paramName = std::string(paramDesc->getTextProperty("name").getText());
+      processor->logToHost(0, ("Setting up parameter: " + paramName).c_str());
+    }
     
-    // Initialize resources with the platform view's drawing context
-    initializeResources(platformView->getNativeDrawContext());
+    // CRITICAL: Set all widgets to visible first (Aaltoverb pattern)
+    ml::forEach<ml::Widget>(_view->_widgets, [&](ml::Widget& w) {
+      w.setProperty("visible", true);
+      processor->logToHost(0, "Set widget to visible");
+    });
     
-    // Attach the view to make it visible
-    platformView->attachViewToParent();
-    
-    std::cout << "ClapSawDemoGUI: PlatformView created and attached" << std::endl;
+    processor->logToHost(0, ("Calling _setupWidgets with " + std::to_string(pdl.size()) + " parameters").c_str());
+    _setupWidgets(pdl);
+    processor->logToHost(0, "Widget parameter setup completed");
   }
-}
-
-void ClapSawDemoGUI::showGUI() {
-  std::cout << "ClapSawDemoGUI: showGUI called" << std::endl;
-  // Make the GUI visible
-  // This might involve calling methods on the AppView base class
-}
-
-void ClapSawDemoGUI::hideGUI() {
-  std::cout << "ClapSawDemoGUI: hideGUI called" << std::endl;
-  // Hide the GUI
 }
 
 void ClapSawDemoGUI::render(NativeDrawContext* nvg) {
-  if (!nvg) return;
+  // Debug: Log render calls to see if rendering is happening
+  static int renderCount = 0;
+  if (processor && (renderCount % 60 == 0)) { // Log every 60th frame (once per second at 60fps)
+    processor->logToHost(0, ("Render call #" + std::to_string(renderCount)).c_str());
+  }
+  renderCount++;
   
-  // Get current view dimensions
-  auto coords = getCoords();
-  float width = coords.viewSizeInPixels.x();
-  float height = coords.viewSizeInPixels.y();
-  
-  std::cout << "ClapSawDemoGUI: render called, size: " << width << "x" << height << std::endl;
-  
-  // Draw pastel teal background using NanoVG HSL
-  // Hue=180 (cyan), Saturation=0.4 (muted), Lightness=0.8 (light)
-  NVGcolor bgColor = nvgHSL(180.0f / 360.0f, 0.4f, 0.8f);
-  
-  nvgBeginPath(nvg);
-  nvgRect(nvg, 0, 0, width, height);
-  nvgFillColor(nvg, bgColor);
-  nvgFill(nvg);
-  
-  // Draw some text to show it's working
-  nvgFontSize(nvg, 24.0f);
-  nvgFillColor(nvg, nvgRGBA(255, 255, 255, 255)); // White text
-  nvgTextAlign(nvg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-  nvgText(nvg, width/2, height/2, "CLAP Saw Demo - MLVG Tutorial", nullptr);
-  
-  // Draw smaller text for the knobs (placeholder)
-  nvgFontSize(nvg, 16.0f);
-  nvgText(nvg, width/4, height/2 + 60, "Cutoff", nullptr);
-  nvgText(nvg, 3*width/4, height/2 + 60, "Resonance", nullptr);
-  
-  // Call base class to handle any other rendering
+  // Skip all custom drawing - let MLVG handle everything
   AppView::render(nvg);
 }
 
-#endif // HAS_GUI
+void ClapSawDemoGUI::initializeResources(NativeDrawContext* nvg) {
+  if (!nvg) return;
+
+  // Set up drawing properties - this is likely why widgets aren't visible!
+  // Colors from TestAppView example
+  _drawingProperties.setProperty("mark", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 }));           // Dark for knob outlines
+  _drawingProperties.setProperty("mark_bright", ml::colorToMatrix({ 0.9, 0.9, 0.9, 1.0 }));       // Bright for highlights  
+  _drawingProperties.setProperty("background", ml::colorToMatrix({ 0.8, 0.8, 0.8, 1.0 }));        // Light gray background
+  _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
+  
+  // Helpful for debugging widget visibility
+  _drawingProperties.setProperty("draw_widget_bounds", true);
+}
+
+// bool ClapSawDemoGUI::willHandleEvent(GUIEvent g) {
+//   // Debug: Log all events reaching willHandleEvent
+//   if (processor) {
+//     std::string msg = "willHandleEvent: type=" + std::string(g.type.getTextFragment().getText()) + 
+//                      " pos=(" + std::to_string(g.position.x()) + "," + 
+//                      std::to_string(g.position.y()) + ")";
+//     processor->logToHost(0, msg.c_str());
+//   }
+//   
+//   // Call base class implementation
+//   bool result = AppView::willHandleEvent(g);
+//   if (processor) {
+//     processor->logToHost(0, ("willHandleEvent returning: " + std::to_string(result)).c_str());
+//   }
+//   return result;
+// }
+
+// bool ClapSawDemoGUI::pushEvent(GUIEvent g) {
+//   // Debug: Log all events reaching pushEvent
+//   if (processor) {
+//     std::string msg = "pushEvent: type=" + std::string(g.type.getTextFragment().getText()) + 
+//                      " pos=(" + std::to_string(g.position.x()) + "," + 
+//                      std::to_string(g.position.y()) + ")";
+//     processor->logToHost(0, msg.c_str());
+//   }
+//   bool result = AppView::pushEvent(g);
+//   if (processor) {
+//     processor->logToHost(0, ("pushEvent returning: " + std::to_string(result)).c_str());
+//   }
+//   return result;
+// }
+
+void ClapSawDemoGUI::onGUIEvent(const GUIEvent& event) {
+  // Debug: Log grid-converted events to see what widgets receive
+  // if (processor) {
+  //   std::string msg = "onGUIEvent (grid): type=" + std::string(event.type.getTextFragment().getText()) + 
+  //                    " pos=(" + std::to_string(event.position.x()) + "," + 
+  //                    std::to_string(event.position.y()) + ")";
+  //   processor->logToHost(0, msg.c_str());
+  // }
+}
+
+void ClapSawDemoGUI::onMessage(Message msg) {
+  // Handle parameter messages from widgets - send them to our processor
+  if (processor && msg.address) {
+    ml::Path addr = msg.address;
+    
+    // The path from DialBasic is "editor/set_param/param_name"
+    if (addr.getSize() > 2 && second(addr) == "set_param") {
+      // This is a parameter change from a widget
+      ml::Path paramName = tail(tail(addr));
+      float normalizedValue = msg.value.getFloatValue();
+      
+      if (processor) {
+        std::string paramNameStr = std::string(pathToText(paramName).getText());
+        std::string logMsg = "Parameter change from GUI: " + paramNameStr + 
+                            " = " + std::to_string(normalizedValue);
+        processor->logToHost(0, logMsg.c_str());
+        
+        // Update the processor parameter
+        processor->setParamFromNormalizedValue(paramNameStr.c_str(), normalizedValue);
+      }
+    }
+  }
+  
+  // Call base class to handle other message types
+  AppView::onMessage(msg);
+}
+
+void ClapSawDemoGUI::animate(NativeDrawContext* nvg) {
+  // CRITICAL: CLAP-specific workaround for event handling.
+  // In plugin contexts, the AppView's _ioTimer may not fire reliably because
+  // the host controls the event loop. We manually call _handleGUIEvents() here
+  // to ensure GUI events are processed on every frame.
+  // Note: The base class animate() does NOT call _handleGUIEvents() anymore,
+  // so this is the only place it gets called in CLAP plugins.
+  _handleGUIEvents();
+  
+  // Call base class for widget animations and message handling
+  AppView::animate(nvg);
+}
+
+void ClapSawDemoGUI::clearResources() {
+  // Clean up any resources here
+  // For this tutorial, we don't have any custom resources
+}
+
+void ClapSawDemoGUI::layoutView(DrawContext dc) {
+  // CRITICAL: Resize all widgets so they can be rendered!
+  ml::forEach<ml::Widget>(_view->_widgets, [&](ml::Widget& w) {
+    w.resize(dc);
+  });
+}
+
+void ClapSawDemoGUI::onResize(Vec2 newSize) {
+  if (processor) {
+    processor->logToHost(0, ("onResize: newSize=(" + std::to_string(newSize.x()) + "," + std::to_string(newSize.y()) + ")").c_str());
+    processor->logToHost(0, ("_GUICoordinates.gridSizeInPixels = " + std::to_string(_GUICoordinates.gridSizeInPixels)).c_str());
+  }
+}

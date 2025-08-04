@@ -1,38 +1,53 @@
 #pragma once
 
-#ifdef HAS_GUI
 #include "MLAppView.h"
 #include "MLPlatformView.h"
 #include "MLDrawContext.h"
+#include "MLDialBasic.h"
+#include "MLTextLabelBasic.h"
+#include "MLWidget.h"
+#include "nanovg.h"
 
-// Forward declare the main plugin class
+// Forward declaration
 class ClapSawDemo;
 
-// Minimal GUI implementation for tutorial purposes
+// Simplified GUI class - plugin developers only need to implement makeWidgets()
 class ClapSawDemoGUI : public ml::AppView {
 public:
-  ClapSawDemoGUI(ClapSawDemo* plugin);
-  ~ClapSawDemoGUI() override;
+  // Constructor - processor reference is optional
+  ClapSawDemoGUI(ClapSawDemo* processor = nullptr);
+  ~ClapSawDemoGUI() override = default;
 
-  // ml::AppView pure virtual methods implementation
-  void initializeResources(NativeDrawContext* nvg) override;
-  void clearResources() override;
-  void layoutView(ml::DrawContext dc) override;
-  void onGUIEvent(const GUIEvent& event) override;
-  void onResize(ml::Vec2 newSize) override;
+  // REQUIRED: Create widgets - this is the main method plugin developers implement
+  void makeWidgets();
   
-  // Override render to draw our background
+  // Public method to connect widgets to parameters (called by CLAPExport)
+  void connectParameters();
+
+  // OPTIONAL: Custom rendering (background, etc.)
   void render(NativeDrawContext* nvg) override;
 
-  // Custom methods for CLAP integration
-  void setPlatformWindow(void* platformWindow);
-  void showGUI();
-  void hideGUI();
+  // OPTIONAL: Resource loading
+  void initializeResources(NativeDrawContext* nvg) override;
+
+  // OPTIONAL: Event handling
+  void onGUIEvent(const GUIEvent& event) override;
+  
+  // Override to debug event filtering
+  // bool willHandleEvent(GUIEvent g);
+  // bool pushEvent(GUIEvent g) override;
+  
+  // Override to handle parameter messages from widgets
+  void onMessage(Message msg) override;
+  
+  // Override animate to ensure event processing in CLAP context
+  void animate(NativeDrawContext* nvg) override;
+
+  // Required pure virtual methods from AppView
+  void clearResources() override;
+  void layoutView(DrawContext dc) override;
+  void onResize(Vec2 newSize) override;
 
 private:
-  ClapSawDemo* plugin;
-  void* platformWindow = nullptr;
-  std::unique_ptr<ml::PlatformView> platformView;
+  ClapSawDemo* processor;
 };
-
-#endif // HAS_GUI
