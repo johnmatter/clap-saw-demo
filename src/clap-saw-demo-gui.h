@@ -1,53 +1,21 @@
 #pragma once
 
-#include "MLAppView.h"
-#include "MLPlatformView.h"
-#include "MLDrawContext.h"
-#include "MLDialBasic.h"
-#include "MLTextLabelBasic.h"
-#include "MLWidget.h"
+#include "CLAPExport.h"  // Includes all necessary MLVG headers and CLAPAppView
 #include "nanovg.h"
 
 // Forward declaration
 class ClapSawDemo;
 
-// Simplified GUI class - plugin developers only need to implement makeWidgets()
-class ClapSawDemoGUI : public ml::AppView {
+// Minimal GUI class - only implement what's specific to your plugin
+class ClapSawDemoGUI : public ml::CLAPAppView<ClapSawDemo> {
 public:
-  // Constructor - processor reference is optional
-  ClapSawDemoGUI(ClapSawDemo* processor = nullptr);
+  // Constructor
+  ClapSawDemoGUI(ClapSawDemo* processor);
   ~ClapSawDemoGUI() override = default;
 
-  // REQUIRED: Create widgets - this is the main method plugin developers implement
-  void makeWidgets();
-  
-  // Public method to connect widgets to parameters (called by CLAPExport)
-  void connectParameters();
+  // REQUIRED: Create your specific widgets
+  void makeWidgets() override;
 
-  // OPTIONAL: Custom rendering (background, etc.)
-  void render(NativeDrawContext* nvg) override;
-
-  // OPTIONAL: Resource loading
+  // REQUIRED: Set up your visual style
   void initializeResources(NativeDrawContext* nvg) override;
-
-  // OPTIONAL: Event handling
-  void onGUIEvent(const GUIEvent& event) override;
-  
-  // Override to debug event filtering
-  // bool willHandleEvent(GUIEvent g);
-  // bool pushEvent(GUIEvent g) override;
-  
-  // Override to handle parameter messages from widgets
-  void onMessage(Message msg) override;
-  
-  // Override animate to ensure event processing in CLAP context
-  void animate(NativeDrawContext* nvg) override;
-
-  // Required pure virtual methods from AppView
-  void clearResources() override;
-  void layoutView(DrawContext dc) override;
-  void onResize(Vec2 newSize) override;
-
-private:
-  ClapSawDemo* processor;
 };

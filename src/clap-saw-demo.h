@@ -1,15 +1,12 @@
 #pragma once
 
-#include "madronalib.h"           // madronalib core (AudioContext with EventsToSignals)
-#include <clap/helpers/plugin.hh>  // CLAP helper framework
-#include <clap/clap.h>             // CLAP core
-#include <functional>              // For std::function
+#include "CLAPExport.h"  // Includes madronalib core + CLAPSignalProcessor base class
 
 #ifdef HAS_GUI
 class ClapSawDemoGUI;
 #endif
 
-class ClapSawDemo : public ml::SignalProcessor {
+class ClapSawDemo : public ml::CLAPSignalProcessor<> {
 private:
   // the AudioContext's EventsToSignals handles state
   ml::AudioContext* audioContext = nullptr;  // Set by wrapper
@@ -28,7 +25,7 @@ private:
 
 public:
   ClapSawDemo();
-  ~ClapSawDemo() override = default;
+  ~ClapSawDemo() = default;
 
   // SignalProcessor interface
   void setSampleRate(double sr);
@@ -38,39 +35,14 @@ public:
   void setAudioContext(ml::AudioContext* ctx) { audioContext = ctx; }
 
   // Voice activity for CLAP sleep/continue
-  bool hasActiveVoices() const { return activeVoiceCount > 0; }
+  bool hasActiveVoices() const override { return activeVoiceCount > 0; }
 
 
 
-  // CLAP parameter interface required by CLAPPluginWrapper
-  uint32_t getParameterCount() const { return _params.descriptions.size(); }
-  const ml::ParameterTree& getParameterTree() const { return _params; }
-
-  // CLAP logging interface
-  void setHostLogCallback(std::function<void(int, const char*)> callback);
-  void logToHost(int severity, const char* message);
-
-  // CLAP parameter flush interface (for GUI->Host sync)
-  void setHostParameterFlushCallback(std::function<void()> callback);
-  void requestHostParameterFlush();
-  
-  // Find parameter ID by name for GUI->Host sync
-  int32_t getParameterIdByName(const std::string& name) const;
-  
-  // CLAP parameter change tracking (for GUI->Host sync)
-  void setParameterChangedCallback(std::function<void(int32_t, double)> callback);
-  void notifyParameterChanged(const std::string& name, double realValue);
+  // Plugin-specific interface
+  const ml::ParameterTree& getParameterTree() const { return this->_params; }
 
 private:
   // Helper methods go here
   ml::DSPVector processVoice(int voiceIndex, ml::EventsToSignals::Voice& voice);
-  
-  // Logging callback - set by CLAPPluginWrapper
-  std::function<void(int, const char*)> hostLogCallback;
-  
-  // Parameter flush callback - set by CLAPPluginWrapper
-  std::function<void()> hostParameterFlushCallback;
-  
-  // Parameter changed callback - set by CLAPPluginWrapper
-  std::function<void(int32_t, double)> parameterChangedCallback;
 };
