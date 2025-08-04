@@ -182,3 +182,13 @@ void ClapSawDemo::logToHost(int severity, const char* message) {
     hostLogCallback(severity, message);
   }
 }
+
+void ClapSawDemo::setHostParameterFlushCallback(std::function<void()> callback) {
+  hostParameterFlushCallback = callback;
+}
+
+void ClapSawDemo::requestHostParameterFlush() {
+  if (hostParameterFlushCallback) {
+    hostParameterFlushCallback();
+  }
+}

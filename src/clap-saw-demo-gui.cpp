@@ -69,6 +69,22 @@ void ClapSawDemoGUI::connectParameters() {
     processor->logToHost(0, ("Calling _setupWidgets with " + std::to_string(pdl.size()) + " parameters").c_str());
     _setupWidgets(pdl);
     processor->logToHost(0, "Widget parameter setup completed");
+    
+    // Sync all widgets with current processor parameter values (initial sync)
+    for (const auto& paramDesc : processor->getParameterTree().descriptions) {
+      std::string paramName = std::string(paramDesc->getTextProperty("name").getText());
+      float currentValue = processor->getNormalizedFloatParam(ml::Path(paramName.c_str()));
+      
+      // Send parameter message to update widgets (using mlvg message system)
+      ml::Path msgPath = ml::Path("set_param", paramName.c_str());
+      ml::Message msg{msgPath, currentValue};
+      msg.flags |= ml::kMsgFromController;  // Prevent echo back to processor
+      enqueueMessage(msg);
+      
+      std::string logMsg = "Initial sync: " + paramName + " = " + std::to_string(currentValue);
+      processor->logToHost(0, logMsg.c_str());
+    }
+    processor->logToHost(0, "Initial widget sync completed");
   }
 }
 
@@ -159,6 +175,9 @@ void ClapSawDemoGUI::onMessage(Message msg) {
         
         // Update the processor parameter
         processor->setParamFromNormalizedValue(paramNameStr.c_str(), normalizedValue);
+        
+        // Request host parameter flush for GUI->Host sync
+        processor->requestHostParameterFlush();
       }
     }
   }

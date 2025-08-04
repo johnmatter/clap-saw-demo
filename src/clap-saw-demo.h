@@ -50,10 +50,17 @@ public:
   void setHostLogCallback(std::function<void(int, const char*)> callback);
   void logToHost(int severity, const char* message);
 
+  // CLAP parameter flush interface (for GUI->Host sync)
+  void setHostParameterFlushCallback(std::function<void()> callback);
+  void requestHostParameterFlush();
+
 private:
   // Helper methods go here
   ml::DSPVector processVoice(int voiceIndex, ml::EventsToSignals::Voice& voice);
   
   // Logging callback - set by CLAPPluginWrapper
   std::function<void(int, const char*)> hostLogCallback;
+  
+  // Parameter flush callback - set by CLAPPluginWrapper
+  std::function<void()> hostParameterFlushCallback;
 };
