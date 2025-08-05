@@ -39,20 +39,14 @@ void ClapSawDemo::processAudioContext() {
 
       auto& voice = const_cast<ml::EventsToSignals::Voice&>(audioContext->getInputVoice(v));
 
-      // Check if this voice is actually playing (has non-zero gate)
-      const ml::DSPVector vGate = voice.outputs.row(ml::kGate);
-      float gateLevel = ml::sum(vGate * vGate);
+      // Process all voices - ADSR will handle envelope generation
+      ml::DSPVector voiceOutput = processVoice(v, voice);
 
-      if (gateLevel > 0.0f) {
-        // Only process voices that are actually playing
-        ml::DSPVector voiceOutput = processVoice(v, voice);
-
-        // Track activity using DSPVector sum (SIMD-friendly)
-        float voiceLevel = ml::sum(voiceOutput * voiceOutput);
-        if (voiceLevel > 0.0f) {
-          activeVoiceCount++;
-        }
-
+      // Track activity using actual voice output (includes ADSR envelope)
+      float voiceLevel = ml::sum(voiceOutput * voiceOutput);
+      const float silenceThreshold = 1e-6f; // Small epsilon for floating-point comparison
+      if (voiceLevel > silenceThreshold) {
+        activeVoiceCount++;
         totalOutput += voiceOutput;
       }
     }
@@ -121,8 +115,18 @@ ml::DSPVector ClapSawDemo::processVoice(int voiceIndex, ml::EventsToSignals::Voi
     voiceDSP[voiceIndex].mLoPass._coeffs = ml::Lopass::makeCoeffs(filterFreq / sr, filterK);
     const ml::DSPVector vFiltered = voiceDSP[voiceIndex].mLoPass(vOscillator);
 
-    // TODO: check for ml::ADSR
-    const ml::DSPVector vOutput = vFiltered * vGate;
+    // Get ADSR parameters
+    float attack = this->getRealFloatParam("attack");
+    float decay = this->getRealFloatParam("decay");
+    float sustain = this->getRealFloatParam("sustain");
+    float release = this->getRealFloatParam("release");
+
+    // Update ADSR coefficients
+    voiceDSP[voiceIndex].mADSR.coeffs = ml::ADSR::calcCoeffs(attack, decay, sustain, release, sr);
+
+    // Process ADSR envelope with gate signal
+    const ml::DSPVector vEnvelope = voiceDSP[voiceIndex].mADSR(vGate);
+    const ml::DSPVector vOutput = vFiltered * vEnvelope;
 
     return vOutput;
 
@@ -138,7 +142,7 @@ void ClapSawDemo::buildParameterDescriptions() {
   params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
     {"name", "gain"},
     {"range", {0.0f, 1.0f}},
-    {"plaindefault", 0.7f}, // TODO: clarify default vs plaindefault
+    {"plaindefault", 0.7f},
     {"units", ""}
   }));
 
@@ -154,6 +158,35 @@ void ClapSawDemo::buildParameterDescriptions() {
     {"range", {0.4f, 20.0f}},
     {"plaindefault", 3.4f},
     {"units", ""}
+  }));
+
+  // ADSR envelope parameters
+  params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
+    {"name", "attack"},
+    {"range", {0.001f, 2.0f}},
+    {"plaindefault", 0.01f},
+    {"units", "s"}
+  }));
+
+  params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
+    {"name", "decay"},
+    {"range", {0.001f, 2.0f}},
+    {"plaindefault", 0.1f},
+    {"units", "s"}
+  }));
+
+  params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
+    {"name", "sustain"},
+    {"range", {0.0f, 1.0f}},
+    {"plaindefault", 0.7f},
+    {"units", ""}
+  }));
+
+  params.push_back(std::make_unique<ml::ParameterDescription>(ml::WithValues{
+    {"name", "release"},
+    {"range", {0.001f, 4.0f}},
+    {"plaindefault", 0.2f},
+    {"units", "s"}
   }));
 
   this->buildParams(params);

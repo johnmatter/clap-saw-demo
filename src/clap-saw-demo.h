@@ -15,12 +15,13 @@ private:
   struct VoiceDSP {
     ml::SawGen sawOscillator;
     ml::Lopass mLoPass;
+    ml::ADSR mADSR;
   };
   std::array<VoiceDSP, 16> voiceDSP;
 
   // Simple voice activity tracking for CLAP
   int activeVoiceCount = 0;
-  
+
 
 
 public:

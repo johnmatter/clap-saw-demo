@@ -11,12 +11,18 @@ ClapSawDemoGUI::ClapSawDemoGUI(ClapSawDemo* processor)
   // // override grid setup
   setGridSizeDefault(60);
   setGridSizeLimits(30, 120);
-  setFixedAspectRatio({10, 6}); // 10x4 grid for symmetrical layout
+  setFixedAspectRatio({10, 7}); // 10x4 grid for symmetrical layout
 
 }
 
 void ClapSawDemoGUI::makeWidgets() {
-  // Add plugin title (centered at top)
+
+  //  _   _ _   _
+  // | |_(_) |_| | ___
+  // | __| | __| |/ _ \
+  // | |_| | |_| |  __/
+  //  \__|_|\__|_|\___|
+
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("title", ml::WithValues{
     {"bounds", {2, 0.2, 6, 0.6}},
     {"text", "madronalib/mlvg demo"},
@@ -27,7 +33,14 @@ void ClapSawDemoGUI::makeWidgets() {
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
 
-  // Add cutoff frequency knob (centered on left side)
+  //  _
+  // | | ___  _ __   __ _ ___ ___
+  // | |/ _ \| '_ \ / _` / __/ __|
+  // | | (_) | |_) | (_| \__ \__ \
+  // |_|\___/| .__/ \__,_|___/___/
+  //         |_|
+
+  // Cutoff
   _view->_widgets.add_unique<DialBasic>("f0", ml::WithValues{
     {"bounds", {0.0, 1.0, 5.0, 2.5}},
     {"log", true},
@@ -36,9 +49,7 @@ void ClapSawDemoGUI::makeWidgets() {
     {"param", "f0"}
   });
 
-  // Add cutoff label (positioned by layoutView)
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("f0_label", ml::WithValues{
-    // {"bounds", {1.5, 1.5, 2.5, 0.4}}, // Temporary bounds, will be positioned by layoutView
     {"text", "Cutoff"},
     {"font", "d_din"},
     {"text_size", 0.7f},
@@ -47,7 +58,7 @@ void ClapSawDemoGUI::makeWidgets() {
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
 
-  // Add resonance knob (centered on right side)
+  // Resonance
   _view->_widgets.add_unique<DialBasic>("Q", ml::WithValues{
     {"bounds", {5, 1.0, 5.0, 2.5}},
     {"visible", true},
@@ -55,10 +66,82 @@ void ClapSawDemoGUI::makeWidgets() {
     {"param", "Q"}
   });
 
-  // Add resonance label (positioned by layoutView)
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("Q_label", ml::WithValues{
-    // {"bounds", {6, 1.5, 2.5, 0.4}}, // Temporary bounds, will be positioned by layoutView
     {"text", "Resonance"},
+    {"font", "d_din"},
+    {"text_size", 0.7f},
+    {"h_align", "center"},
+    {"v_align", "middle"},
+    {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
+  });
+
+  //            _
+  //   __ _  __| |___ _ __
+  //  / _` |/ _` / __| '__|
+  // | (_| | (_| \__ \ |
+  //  \__,_|\__,_|___/_|
+
+  // Attack
+  _view->_widgets.add_unique<DialBasic>("attack", ml::WithValues{
+    {"bounds", {0.0, 4, 2.5, 2}},
+    {"visible", true},
+    {"draw_number", true},
+    {"param", "attack"}
+  });
+
+  _view->_backgroundWidgets.add_unique<TextLabelBasic>("attack_label", ml::WithValues{
+    {"text", "Attack"},
+    {"font", "d_din"},
+    {"text_size", 0.7f},
+    {"h_align", "center"},
+    {"v_align", "middle"},
+    {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
+  });
+
+  // Decay
+  _view->_widgets.add_unique<DialBasic>("decay", ml::WithValues{
+    {"bounds", {2.5, 4, 2.5, 2}},
+    {"visible", true},
+    {"draw_number", true},
+    {"param", "decay"}
+  });
+
+  _view->_backgroundWidgets.add_unique<TextLabelBasic>("decay_label", ml::WithValues{
+    {"text", "Decay"},
+    {"font", "d_din"},
+    {"text_size", 0.7f},
+    {"h_align", "center"},
+    {"v_align", "middle"},
+    {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
+  });
+
+  // Sustain
+  _view->_widgets.add_unique<DialBasic>("sustain", ml::WithValues{
+    {"bounds", {5.0, 4, 2.5, 2}},
+    {"visible", true},
+    {"draw_number", true},
+    {"param", "sustain"}
+  });
+
+  _view->_backgroundWidgets.add_unique<TextLabelBasic>("sustain_label", ml::WithValues{
+    {"text", "Sustain"},
+    {"font", "d_din"},
+    {"text_size", 0.7f},
+    {"h_align", "center"},
+    {"v_align", "middle"},
+    {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
+  });
+
+  // Release
+  _view->_widgets.add_unique<DialBasic>("release", ml::WithValues{
+    {"bounds", {7.5, 4, 2.5, 2}},
+    {"visible", true},
+    {"draw_number", true},
+    {"param", "release"}
+  });
+
+  _view->_backgroundWidgets.add_unique<TextLabelBasic>("release_label", ml::WithValues{
+    {"text", "Release"},
     {"font", "d_din"},
     {"text_size", 0.7f},
     {"h_align", "center"},
@@ -75,18 +158,23 @@ void ClapSawDemoGUI::layoutView(ml::DrawContext dc) {
     if (!_view->_widgets[dialName] || !_view->_backgroundWidgets[labelName]) {
       return;
     }
-
     ml::Rect dialRect = _view->_widgets[dialName]->getRectProperty("bounds");
-    ml::Rect labelRect(0, 0, 3, 0.4);
+    ml::Rect labelRect(0, 0, 3, 0.4); // TODO: make this smarter, using label's bounds?
     _view->_backgroundWidgets[labelName]->setRectProperty(
       "bounds",
       ml::alignCenterToPoint(labelRect, dialRect.bottomCenter() - ml::Vec2(0, 0.1))
     );
   };
 
-  // Position labels under their corresponding dials
+  // Position lopass dials
   positionLabelUnderDial("f0", "f0_label");
   positionLabelUnderDial("Q", "Q_label");
+
+  // Position ADSR labels
+  positionLabelUnderDial("attack", "attack_label");
+  positionLabelUnderDial("decay", "decay_label");
+  positionLabelUnderDial("sustain", "sustain_label");
+  positionLabelUnderDial("release", "release_label");
 }
 
 void ClapSawDemoGUI::loadFontFromFile(NativeDrawContext* nvg, const std::string& fontName, const std::string& filePath) {

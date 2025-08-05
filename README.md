@@ -123,6 +123,16 @@ clap-saw-demo/
 
 The `processAudioContext()` method receives pre-processed voice signals (pitch, gate, mod) from EventsToSignals and only needs to implement DSP.
 
+## DSP Features
+
+**Sawtooth Oscillator**: Classic analog-style sawtooth wave generation with MIDI pitch tracking
+**Lowpass Filter**: State-variable filter with resonance control (cutoff: 10Hz-10kHz, Q: 0.4-20)
+**ADSR Envelope**: Full ADSR envelope generator for natural note shaping:
+- **Attack**: 0.001s - 2.0s (fast to slow attack)
+- **Decay**: 0.001s - 2.0s (quick to gradual decay)  
+- **Sustain**: 0.0 - 1.0 (silence to full volume)
+- **Release**: 0.001s - 4.0s (quick to long release)
+
 ## CLAP Extensions Status
 
 - ✅ **audio-ports**: Stereo I/O with in-place processing
