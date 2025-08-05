@@ -2,6 +2,7 @@
 
 #include "CLAPExport.h"  // Includes all necessary MLVG headers and CLAPAppView
 #include "nanovg.h"
+#include <string>
 
 // Forward declaration
 class ClapSawDemo;
@@ -13,9 +14,16 @@ public:
   ClapSawDemoGUI(ClapSawDemo* processor);
   ~ClapSawDemoGUI() override = default;
 
-  // REQUIRED: Create your specific widgets
+  // Create your specific widgets
   void makeWidgets() override;
 
-  // REQUIRED: Set up your visual style
+  // Layout widgets with consistent positioning
+  void layoutView(ml::DrawContext dc) override;
+
+  // Set up your visual style
   void initializeResources(NativeDrawContext* nvg) override;
+
+private:
+  // Helper function to load fonts from disk
+  void loadFontFromFile(NativeDrawContext* nvg, const std::string& fontName, const std::string& filePath);
 };

@@ -30,16 +30,15 @@ The entire plugin implementation is reduced to a single `processAudioContext()` 
 git clone https://github.com/your-repo/clap-saw-demo
 cd clap-saw-demo
 git submodule update --init --recursive
-mkdir -p ignore/build
-cmake -Bignore/build -DCMAKE_BUILD_TYPE=Release -DCOPY_AFTER_BUILD=ON -DCSD_INCLUDE_GUI=OFF
-cmake --build ignore/build --target clap-saw-demo -j
+cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCOPY_AFTER_BUILD=ON
+cmake --build build -j --target clap-saw-demo
 ```
 
 The plugin automatically installs to:
 - **macOS**: `~/Library/Audio/Plug-Ins/CLAP/clap-saw-demo.clap`
 - **Linux**: `~/.clap/clap-saw-demo.clap`
 
-**Note**: For the moment, the GUI is disabled (`-DCSD_INCLUDE_GUI=OFF`) to focus on core CLAP + madronalib functionality.
+**Note**: The GUI is now enabled and includes the Emotional Type variable font for enhanced typography.
 
 ## Development Scripts
 
@@ -90,12 +89,18 @@ cargo run --release -- validate ~/Library/Audio/Plug-Ins/CLAP/clap-saw-demo.clap
 
 ```
 clap-saw-demo/
-├── src/                          # Plugin implementation (~70 lines total!)
+├── src/                          # Plugin implementation
 │   ├── clap-saw-demo.cpp         # Main DSP processing
 │   ├── clap-saw-demo.h           # Plugin interface
+│   ├── clap-saw-demo-gui.cpp     # MLVG GUI implementation
+│   ├── clap-saw-demo-gui.h       # GUI interface
 │   └── clap-saw-demo-entry.cpp   # One-line CLAP export
+├── fonts/
+│   ├── emotional-VF.ttf          # Emotional Type variable font
+│   └── README.md                 # Font documentation
 ├── libs/
 │   ├── madronalib/               # Audio DSP framework with EventsToSignals
+│   ├── mlvg/                     # Vector graphics GUI library
 │   ├── clap/                     # CLAP specification
 │   ├── clap-helpers/             # CLAP utility library
 │   └── clap-validator/           # CLAP testing tool
@@ -112,6 +117,7 @@ clap-saw-demo/
 
 **Key files**:
 - `src/clap-saw-demo.cpp` - The `processAudioContext()` method has all the interesting DSP stuff
+- `src/clap-saw-demo-gui.cpp` - MLVG GUI with Emotional Type variable font integration
 - `libs/madronalib/include/CLAPExport.h` - Fairly general CLAP wrapper for a madronalib [`ml::SignalProcessor`](https://github.com/madronalabs/madronalib/blob/master/source/app/MLSignalProcessor.h)
 - `src/clap-saw-demo-entry.cpp` - One-liner plugin export macro
 
@@ -123,14 +129,14 @@ The `processAudioContext()` method receives pre-processed voice signals (pitch, 
 - ✅ **note-ports**: MIDI input with CLAP and MIDI dialect support
 - ✅ **Factory interface**: Plugin enumeration and creation
 - ✅ **Core lifecycle**: Complete plugin lifecycle management
-- 🚧 **params**: Parameter automation (in progress)
-- 📋 **state**: Preset management (future enhancement)
-- 📋 **gui**: Plugin interface (future enhancement)
+- ✅ **params**: Parameter automation with full bidirectional sync
+- ✅ **gui**: MLVG-based plugin interface with variable font typography
+- ✅ **state**: Preset management (future enhancement)
 
 ## Development Workflow
 
 1. **Make changes** to plugin code
-2. **Build and auto-install**: `cmake --build ignore/build --target clap-saw-demo`
+2. **Build and auto-install**: `cmake --build build -j --target clap-saw-demo`
 3. **Validate**: `scripts/test-plugin.sh`
 4. **Test in DAW**: Load in Bitwig/Reaper/etc.
 5. **Debug if needed**: `scripts/debug-plugin.sh`
@@ -139,15 +145,17 @@ The `processAudioContext()` method receives pre-processed voice signals (pitch, 
 
 - **Voice management**: Complete polyphonic note handling via EventsToSignals
 - **Event processing**: MIDI/MPE support with sample-accurate timing
-- **Parameter automation**: Smoothing and modulation
+- **Parameter automation**: Smoothing and modulation with bidirectional sync
+- **GUI Framework**: MLVG vector graphics with variable font support
 - **Cross-platform**: Identical DSP core for CLAP, AU, AAX, standalones, whatever your heart desires
 - **Performance**: SIMD-optimized DSPVector processing throughout
 
 ## Contributing
 
 **Future enhancements welcome**:
-- Parameter extension implementation
-- Enhanced DSP features (unison, filtering)
+- Variable font animations (parameter-driven weight/width changes)
+- Enhanced DSP features (unison, filtering, effects)
+- Advanced GUI widgets and visualizations
 - Performance optimization and profiling
 - Cross-platform validation
 
