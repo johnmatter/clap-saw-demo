@@ -62,11 +62,11 @@ cd "$PROJECT_ROOT"
 # Configure CMake if needed
 if [ ! -d "$BUILD_DIR" ]; then
   print_status "Configuring CMake build..."
-  cmake -B"$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCSD_INCLUDE_GUI=FALSE
+  cmake -B"$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCOPY_AFTER_BUILD=ON
 fi
 
 # Build the plugin
-if ! cmake --build "$BUILD_DIR"; then
+if ! cmake --build "$BUILD_DIR" -j --target clap-saw-demo; then
   print_error "Failed to build plugin"
   exit 1
 fi
