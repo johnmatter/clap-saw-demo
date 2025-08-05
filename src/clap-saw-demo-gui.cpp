@@ -11,7 +11,7 @@ ClapSawDemoGUI::ClapSawDemoGUI(ClapSawDemo* processor)
   // // override grid setup
   setGridSizeDefault(60);
   setGridSizeLimits(30, 120);
-  setFixedAspectRatio({10, 7}); // 10x4 grid for symmetrical layout
+  setFixedAspectRatio({10, 5});
 
 }
 
@@ -27,11 +27,22 @@ void ClapSawDemoGUI::makeWidgets() {
     {"bounds", {2, 0.2, 6, 0.6}},
     {"text", "madronalib/mlvg demo"},
     {"font", "d_din"},
-    {"text_size", 0.7f},
+    {"text_size", _drawingProperties.getFloatProperty("title_text_size")},
     {"h_align", "center"},
     {"v_align", "middle"},
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
+
+  // Could be fun to have some kind of patch diagram
+
+  //   ml::kPitch  ml::kGate
+  //      |           |
+  //   ml::SawGen     |
+  //      |           |
+  //   ml::Lopass  ml::ADSR
+  //      |___________|
+  //            *
+  //            |
 
   //  _
   // | | ___  _ __   __ _ ___ ___
@@ -42,35 +53,43 @@ void ClapSawDemoGUI::makeWidgets() {
 
   // Cutoff
   _view->_widgets.add_unique<DialBasic>("f0", ml::WithValues{
-    {"bounds", {0.0, 1.0, 5.0, 2.5}},
+    {"bounds", {_drawingProperties.getFloatProperty("left_col_x"),
+                _drawingProperties.getFloatProperty("top_row_y"),
+                _drawingProperties.getFloatProperty("large_dial_width"),
+                _drawingProperties.getFloatProperty("large_dial_height")}},
     {"log", true},
     {"visible", true},
     {"draw_number", true},
+    {"text_size", _drawingProperties.getFloatProperty("dial_text_size")},
     {"param", "f0"}
   });
 
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("f0_label", ml::WithValues{
     {"text", "Cutoff"},
     {"font", "d_din"},
-    {"text_size", 0.7f},
-    {"h_align", "center"},
+    {"text_size", _drawingProperties.getFloatProperty("label_text_size")},
+    {"h_align", "right"},
     {"v_align", "middle"},
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
 
   // Resonance
   _view->_widgets.add_unique<DialBasic>("Q", ml::WithValues{
-    {"bounds", {5, 1.0, 5.0, 2.5}},
+    {"bounds", {_drawingProperties.getFloatProperty("right_col_x"),
+                _drawingProperties.getFloatProperty("top_row_y"),
+                _drawingProperties.getFloatProperty("large_dial_width"),
+                _drawingProperties.getFloatProperty("large_dial_height")}},
     {"visible", true},
     {"draw_number", true},
+    {"text_size", _drawingProperties.getFloatProperty("dial_text_size")},
     {"param", "Q"}
   });
 
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("Q_label", ml::WithValues{
-    {"text", "Resonance"},
+    {"text", "Q"},
     {"font", "d_din"},
-    {"text_size", 0.7f},
-    {"h_align", "center"},
+    {"text_size", _drawingProperties.getFloatProperty("label_text_size")},
+    {"h_align", "right"},
     {"v_align", "middle"},
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
@@ -83,68 +102,84 @@ void ClapSawDemoGUI::makeWidgets() {
 
   // Attack
   _view->_widgets.add_unique<DialBasic>("attack", ml::WithValues{
-    {"bounds", {0.0, 4, 2.5, 2}},
+    {"bounds", {_drawingProperties.getFloatProperty("adsr_col1_x"),
+                _drawingProperties.getFloatProperty("bottom_row_y"),
+                _drawingProperties.getFloatProperty("small_dial_width"),
+                _drawingProperties.getFloatProperty("small_dial_height")}},
     {"visible", true},
     {"draw_number", true},
+    {"text_size", _drawingProperties.getFloatProperty("dial_text_size")},
     {"param", "attack"}
   });
 
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("attack_label", ml::WithValues{
     {"text", "Attack"},
     {"font", "d_din"},
-    {"text_size", 0.7f},
-    {"h_align", "center"},
+    {"text_size", _drawingProperties.getFloatProperty("label_text_size")},
+    {"h_align", "right"},
     {"v_align", "middle"},
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
 
   // Decay
   _view->_widgets.add_unique<DialBasic>("decay", ml::WithValues{
-    {"bounds", {2.5, 4, 2.5, 2}},
+    {"bounds", {_drawingProperties.getFloatProperty("adsr_col2_x"),
+                _drawingProperties.getFloatProperty("bottom_row_y"),
+                _drawingProperties.getFloatProperty("small_dial_width"),
+                _drawingProperties.getFloatProperty("small_dial_height")}},
     {"visible", true},
     {"draw_number", true},
+    {"text_size", _drawingProperties.getFloatProperty("dial_text_size")},
     {"param", "decay"}
   });
 
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("decay_label", ml::WithValues{
     {"text", "Decay"},
     {"font", "d_din"},
-    {"text_size", 0.7f},
-    {"h_align", "center"},
+    {"text_size", _drawingProperties.getFloatProperty("label_text_size")},
+    {"h_align", "right"},
     {"v_align", "middle"},
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
 
   // Sustain
   _view->_widgets.add_unique<DialBasic>("sustain", ml::WithValues{
-    {"bounds", {5.0, 4, 2.5, 2}},
+    {"bounds", {_drawingProperties.getFloatProperty("adsr_col3_x"),
+                _drawingProperties.getFloatProperty("bottom_row_y"),
+                _drawingProperties.getFloatProperty("small_dial_width"),
+                _drawingProperties.getFloatProperty("small_dial_height")}},
     {"visible", true},
     {"draw_number", true},
+    {"text_size", _drawingProperties.getFloatProperty("dial_text_size")},
     {"param", "sustain"}
   });
 
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("sustain_label", ml::WithValues{
     {"text", "Sustain"},
     {"font", "d_din"},
-    {"text_size", 0.7f},
-    {"h_align", "center"},
+    {"text_size", _drawingProperties.getFloatProperty("label_text_size")},
+    {"h_align", "right"},
     {"v_align", "middle"},
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
 
   // Release
   _view->_widgets.add_unique<DialBasic>("release", ml::WithValues{
-    {"bounds", {7.5, 4, 2.5, 2}},
+    {"bounds", {_drawingProperties.getFloatProperty("adsr_col4_x"),
+                _drawingProperties.getFloatProperty("bottom_row_y"),
+                _drawingProperties.getFloatProperty("small_dial_width"),
+                _drawingProperties.getFloatProperty("small_dial_height")}},
     {"visible", true},
     {"draw_number", true},
+    {"text_size", _drawingProperties.getFloatProperty("dial_text_size")},
     {"param", "release"}
   });
 
   _view->_backgroundWidgets.add_unique<TextLabelBasic>("release_label", ml::WithValues{
     {"text", "Release"},
     {"font", "d_din"},
-    {"text_size", 0.7f},
-    {"h_align", "center"},
+    {"text_size", _drawingProperties.getFloatProperty("label_text_size")},
+    {"h_align", "right"},
     {"v_align", "middle"},
     {"text_color", ml::colorToMatrix({ 0.01, 0.01, 0.01, 1.0 })}
   });
@@ -162,7 +197,7 @@ void ClapSawDemoGUI::layoutView(ml::DrawContext dc) {
     ml::Rect labelRect(0, 0, 3, 0.4); // TODO: make this smarter, using label's bounds?
     _view->_backgroundWidgets[labelName]->setRectProperty(
       "bounds",
-      ml::alignCenterToPoint(labelRect, dialRect.bottomCenter() - ml::Vec2(0, 0.1))
+      ml::alignCenterToPoint(labelRect, dialRect.bottomCenter() - ml::Vec2(0.4, 0.50))
     );
   };
 
@@ -212,13 +247,41 @@ void ClapSawDemoGUI::initializeResources(NativeDrawContext* nvg) {
   _drawingProperties.setProperty("background", ml::colorToMatrix({ 0.6, 0.7, 0.8, 1.0 }));
   _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
 
+  // TODO: Should these just be macros?
+  // Centralized typography
+  _drawingProperties.setProperty("title_text_size", 0.3f);
+  _drawingProperties.setProperty("label_text_size", 0.4f);
+  _drawingProperties.setProperty("dial_text_size", 0.5f);
+
+  // Centralized layout settings for symmetrical positioning
+  _drawingProperties.setProperty("grid_width", 10.0f);
+  _drawingProperties.setProperty("grid_height", 7.0f);
+
+  // Row positions (equidistant from center)
+  _drawingProperties.setProperty("top_row_y", 0.4f);
+  _drawingProperties.setProperty("bottom_row_y", 2.5f);
+
+  // Column positions (equidistant from center)
+  _drawingProperties.setProperty("left_col_x", 0.0f);
+  _drawingProperties.setProperty("right_col_x", 5.0f);
+  _drawingProperties.setProperty("adsr_col1_x", 0.0f);
+  _drawingProperties.setProperty("adsr_col2_x", 2.5f);
+  _drawingProperties.setProperty("adsr_col3_x", 5.0f);
+  _drawingProperties.setProperty("adsr_col4_x", 7.5f);
+
+  // Widget dimensions
+  _drawingProperties.setProperty("large_dial_width", 5.0f);
+  _drawingProperties.setProperty("large_dial_height", 2.5f);
+  _drawingProperties.setProperty("small_dial_width", 2.5f);
+  _drawingProperties.setProperty("small_dial_height", 2.5f);
+
   // Load default MLVG fonts (essential for text to work properly)
   // These fonts must be loaded into _resources.fonts before widgets are created
   // so that getFontResource() can find them when widgets render
   loadFontFromFile(nvg, "d_din", "libs/mlvg/examples/app/resources/D-DIN.otf");
   loadFontFromFile(nvg, "d_din_italic", "libs/mlvg/examples/app/resources/D-DIN-Italic.otf");
 
-  // Helpful for debugging layout
-  _drawingProperties.setProperty("draw_widget_bounds", true);
+  // // Helpful for debugging layout
+  // _drawingProperties.setProperty("draw_widget_bounds", true);
 
 }
