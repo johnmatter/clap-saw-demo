@@ -32,6 +32,8 @@ if (${CSD_INCLUDE_GUI})
     message(STATUS "Including MLVG for GUI")
     set(BUILD_TESTS OFF CACHE BOOL "Disable MLVG tests")
     add_subdirectory(libs/mlvg EXCLUDE_FROM_ALL)
+    # create embedded font resources
+    create_resources(libs/mlvg/examples/app/resources build/resources/clap-saw-demo)
 else()
     message(STATUS "GUI Bypassed. headless CSD generated")
 endif()
@@ -48,7 +50,11 @@ add_library(${PROJECT_NAME} MODULE
 if(CSD_INCLUDE_GUI)
   target_sources(${PROJECT_NAME} PRIVATE
     src/clap-saw-demo-gui.cpp
+    build/resources/clap-saw-demo/resources.c
   )
+
+  # Set the generated resource files to compile as C++
+  set_source_files_properties(build/resources/clap-saw-demo/resources.c PROPERTIES COMPILE_FLAGS "-x c++")
 endif()
 target_link_libraries(${PROJECT_NAME} readerwriterqueue clap clap-helpers madronalib mlvg)
 
@@ -61,7 +67,7 @@ if(APPLE AND CSD_INCLUDE_GUI)
   endif()
 endif()
 
-# Add include directories  
+# Add include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
   libs/clap/include
   libs/clap-helpers/include
@@ -100,14 +106,14 @@ if (${CSD_ENABLE_TESTING})
   find_program(CARGO_EXECUTABLE cargo)
   if (CARGO_EXECUTABLE)
     message(STATUS "Found Cargo at ${CARGO_EXECUTABLE} - enabling CLAP validation tests")
-    
+
     # Build clap-validator
     add_custom_target(build-clap-validator
       COMMAND ${CARGO_EXECUTABLE} build --release
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/clap-validator
       COMMENT "Building clap-validator"
     )
-    
+
     # Test target that runs clap-validator on our plugin
     add_custom_target(test-clap-plugin
       COMMAND ${CARGO_EXECUTABLE} run --release -- validate $<TARGET_FILE:${PROJECT_NAME}> --only-failed
@@ -115,14 +121,14 @@ if (${CSD_ENABLE_TESTING})
       DEPENDS ${PROJECT_NAME} build-clap-validator
       COMMENT "Running CLAP specification validation on ${PROJECT_NAME}"
     )
-    
+
     # Add to CTest
     add_test(
       NAME clap-specification-compliance
       COMMAND ${CARGO_EXECUTABLE} run --release -- validate $<TARGET_FILE:${PROJECT_NAME}> --only-failed
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/clap-validator
     )
-    
+
     # Convenience test script targets
     if(WIN32)
       add_custom_target(test-plugin
@@ -143,7 +149,7 @@ if (${CSD_ENABLE_TESTING})
         COMMENT "Running comprehensive plugin debugging suite (Unix)"
       )
     endif()
-    
+
     # CLAP debugging tools integration
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-info/CMakeLists.txt)
       message(STATUS "Found clap-info - adding debugging targets")
@@ -153,20 +159,20 @@ if (${CSD_ENABLE_TESTING})
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-info/build --config Release
         COMMENT "Building clap-info debugging tool"
       )
-      
+
       add_custom_target(inspect-plugin
         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-info/build/clap-info $<TARGET_FILE:${PROJECT_NAME}>
         DEPENDS ${PROJECT_NAME} build-clap-info
         COMMENT "Inspecting plugin with clap-info"
       )
     endif()
-    
+
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/clap-host/CMakeLists.txt)
       message(STATUS "Found clap-host - adding host testing targets")
       # Note: clap-host requires Qt6 and has complex build requirements
       # Use scripts/debug-plugin.sh for full clap-host integration
     endif()
-    
+
   else()
     message(WARNING "Cargo not found - CLAP validation tests disabled. Install Rust from https://rustup.rs/")
   endif()

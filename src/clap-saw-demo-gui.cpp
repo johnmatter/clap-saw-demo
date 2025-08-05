@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+// Include embedded font resources
+#include "../build/resources/clap-saw-demo/resources.c"
+
 ClapSawDemoGUI::ClapSawDemoGUI(ClapSawDemo* processor)
   : CLAPAppView("ClapSawDemo", processor) {
 
@@ -234,7 +237,6 @@ void ClapSawDemoGUI::loadFontFromFile(NativeDrawContext* nvg, const std::string&
     }
     fclose(fontFile);
   } else {
-    // :(
   }
 }
 
@@ -275,11 +277,10 @@ void ClapSawDemoGUI::initializeResources(NativeDrawContext* nvg) {
   _drawingProperties.setProperty("small_dial_width", 2.5f);
   _drawingProperties.setProperty("small_dial_height", 2.5f);
 
-  // Load default MLVG fonts (essential for text to work properly)
-  // These fonts must be loaded into _resources.fonts before widgets are created
-  // so that getFontResource() can find them when widgets render
-  loadFontFromFile(nvg, "d_din", "libs/mlvg/examples/app/resources/D-DIN.otf");
-  loadFontFromFile(nvg, "d_din_italic", "libs/mlvg/examples/app/resources/D-DIN-Italic.otf");
+  // Load embedded fonts (essential for text to work properly)
+  // These fonts are embedded as C arrays and loaded directly from memory
+  _resources.fonts["d_din"] = std::make_unique<ml::FontResource>(nvg, "d_din", resources::D_DIN_otf, resources::D_DIN_otf_size, 0);
+  _resources.fonts["d_din_italic"] = std::make_unique<ml::FontResource>(nvg, "d_din_italic", resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
 
   // // Helpful for debugging layout
   // _drawingProperties.setProperty("draw_widget_bounds", true);
